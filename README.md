@@ -10,16 +10,26 @@ klik kiri untuk salin ejaan 100% tepat, kemudian klik kanan → Paste di destina
 |---|---|
 | `index.html` | **Mod Admin** — buka untuk sunting/tambah panduan. Data disimpan automatik dalam browser (localStorage). |
 | `GCE-Altra-Guide-SAMPLE.html` | Contoh fail kongsi (baca-sahaja) yang dijana oleh butang 📤 Kongsi. |
-| `AltraPaste.pyw` | **Pembantu tampal satu-klik** (Windows, perlu Python). Bila ON: klik KANAN di mana-mana app = tampal terus tanpa menu. |
+| `AltraPaste.pyw` | **Pembantu salin & tampal pantas** (Windows, perlu Python). Pilih teks = salin terus · klik KANAN = tampal terus. |
 | `PDF Guider/` | PDF asal (sumber kandungan 6 lab). |
 
-## AltraPaste — tampal terus dengan klik kanan
+## AltraPaste v2 — salin dengan pilih, tampal dengan klik kanan
 
-1. Dwiklik `AltraPaste.pyw` — tetingkap kecil hijau muncul di penjuru kanan atas (mula dalam keadaan **ON**).
-2. Salin apa-apa dari panduan (klik kiri kotak biru 📋).
-3. **Klik KANAN** di mana-mana medan teks — dalam Chrome, Google Classroom, Notepad, apa sahaja — teks terus tertampal. Tiada menu, tiada pilih "Paste".
-4. Perlu menu klik-kanan biasa sekejap? Tahan **Shift** sambil klik kanan, atau tekan **F8** untuk OFF.
-5. Tutup tetingkap AltraPaste untuk berhenti sepenuhnya.
+Dwiklik `AltraPaste.pyw` — tetingkap kecil muncul di penjuru kanan atas dengan
+dua suis dan pratonton clipboard terkini. Kedua-dua mod mula dalam keadaan **ON**.
+
+| Mod | Fungsi | Hotkey |
+|---|---|---|
+| **AUTO-COPY** | **Pilih/highlight teks** (seret tetikus) di mana-mana app = teks terus disalin. Setiap pilihan baru **menggantikan** salinan lama secara automatik. | F7 |
+| **PASTE** | **Klik KANAN** di mana-mana medan teks = tampal terus, tiada menu. | F8 |
+
+Aliran kerja penuh tanpa papan kekunci: *pilih teks → klik kanan di destinasi → siap.*
+
+- Tahan **Shift** sambil klik kanan untuk menu klik-kanan biasa.
+- Pratonton "CLIPBOARD TERKINI" dalam tetingkap menunjukkan apa yang akan ditampal.
+- Kedua-dua mod **dilangkau secara automatik dalam terminal** (cmd, PowerShell, Windows
+  Terminal, Git Bash) — Ctrl+C di situ membatalkan arahan, jadi AltraPaste tidak masuk campur.
+- Tutup tetingkap AltraPaste untuk berhenti sepenuhnya.
 
 > Nota: komputer penerima perlu Python untuk AltraPaste. Tanpa Python, mereka masih boleh guna Ctrl+V seperti biasa — fail HTML panduan berfungsi sendiri.
 
