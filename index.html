@@ -147,6 +147,8 @@ textarea.ed-sub{font-size:14px;color:var(--muted);resize:vertical}
     <div id="glist"></div>
     <div class="sb-btns">
       <button class="sb-btn" onclick="newGuide()">➕ Panduan Baru</button>
+      <button class="sb-btn" onclick="document.getElementById('docfile').click()">📄 Import Dokumen (Word/PPT/Excel/PDF)</button>
+      <input type="file" id="docfile" accept=".docx,.pptx,.xlsx,.xls,.pdf,.txt" style="display:none" onchange="importDoc(this)">
       <button class="sb-btn primary" onclick="openShare()">📤 Kongsi (Eksport HTML)</button>
       <button class="sb-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
       <button class="sb-btn" onclick="exportJSON()">💾 Backup Data (JSON)</button>
@@ -430,6 +432,149 @@ function download(name, content, mime){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([content],{type:mime}));
   a.download=name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------- document import: docx / pptx / xlsx / xls / pdf / txt ----------
+   Parsers are lazy-loaded from CDN only when needed (requires internet). */
+const CDN={
+  mammoth:'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js',
+  jszip:'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+  xlsx:'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  pdf:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+  pdfWorker:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+};
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    if(document.querySelector('script[src="'+src+'"]')) return res();
+    const s=document.createElement('script'); s.src=src;
+    s.onload=res; s.onerror=()=>rej(new Error('Gagal memuat perpustakaan penghurai — semak sambungan internet.'));
+    document.head.appendChild(s);
+  });
+}
+async function importDoc(inp){
+  const f=inp.files[0]; inp.value=''; if(!f) return;
+  const ext=f.name.split('.').pop().toLowerCase();
+  toast('⏳ Membaca '+f.name+'…');
+  try{
+    let blocks;
+    if(ext==='docx')      blocks=await parseDocx(await f.arrayBuffer());
+    else if(ext==='pptx') blocks=await parsePptx(await f.arrayBuffer());
+    else if(ext==='xlsx'||ext==='xls') blocks=await parseXls(await f.arrayBuffer());
+    else if(ext==='pdf')  blocks=await parsePdf(await f.arrayBuffer());
+    else if(ext==='txt')  blocks=parseTxt(await f.text());
+    else { alert('Format .'+ext+' tidak disokong.\nGuna: .docx .pptx .xlsx .xls .pdf .txt\n(Fail .doc / .ppt lama: buka dalam Office → Save As → format baru dahulu.)'); return; }
+    if(!blocks.length){ alert('Tiada teks dapat diekstrak daripada fail ini.'); return; }
+    showImportChoice(f.name.replace(/\.[^.]+$/,''), blocks);
+  }catch(err){ alert('Import gagal: '+err.message); }
+}
+async function parseDocx(buf){
+  await loadScript(CDN.mammoth);
+  const res=await mammoth.convertToHtml({arrayBuffer:buf});
+  return htmlToBlocks(res.value);
+}
+function htmlToBlocks(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const blocks=[];
+  const liTexts=el=>[...el.querySelectorAll(':scope>li')].map(l=>l.textContent.trim()).filter(x=>x);
+  for(const el of doc.body.children){
+    const t=el.textContent.trim();
+    switch(el.tagName){
+      case 'H1': case 'H2': if(t) blocks.push({type:'h2',text:t}); break;
+      case 'H3': case 'H4': case 'H5': case 'H6': if(t) blocks.push({type:'h3',text:t}); break;
+      case 'OL': { const it=liTexts(el); if(it.length) blocks.push({type:'steps',items:it}); break; }
+      case 'UL': { const it=liTexts(el); if(it.length) blocks.push({type:'bullets',items:it}); break; }
+      case 'TABLE': {
+        const rows=[...el.querySelectorAll('tr')].map(r=>[...r.querySelectorAll('td,th')]
+          .map(c=>c.textContent.trim()).filter(x=>x).join(' · ')).filter(x=>x);
+        if(rows.length) blocks.push({type:'bullets',items:rows}); break; }
+      default: if(t) blocks.push({type:'p',text:t});
+    }
+  }
+  return blocks;
+}
+async function parsePptx(buf){
+  await loadScript(CDN.jszip);
+  const zip=await JSZip.loadAsync(buf);
+  const A='http://schemas.openxmlformats.org/drawingml/2006/main';
+  const slides=Object.keys(zip.files)
+    .filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n))
+    .sort((a,b)=>+a.match(/slide(\d+)\.xml/)[1]-+b.match(/slide(\d+)\.xml/)[1]);
+  const blocks=[];
+  for(let i=0;i<slides.length;i++){
+    const xml=await zip.file(slides[i]).async('string');
+    const doc=new DOMParser().parseFromString(xml,'application/xml');
+    const paras=[...doc.getElementsByTagNameNS(A,'p')]
+      .map(p=>[...p.getElementsByTagNameNS(A,'t')].map(t=>t.textContent).join('').trim())
+      .filter(t=>t);
+    if(!paras.length) continue;
+    blocks.push({type:'h2',text:'Slide '+(i+1)+': '+paras[0]});
+    if(paras.length>1) blocks.push({type:'bullets',items:paras.slice(1)});
+  }
+  return blocks;
+}
+async function parseXls(buf){
+  await loadScript(CDN.xlsx);
+  const wb=XLSX.read(buf,{type:'array'});
+  const blocks=[];
+  for(const name of wb.SheetNames){
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:''});
+    const items=rows.map(r=>r.map(c=>String(c).trim()).filter(c=>c).join(' · ')).filter(r=>r);
+    if(!items.length) continue;
+    if(wb.SheetNames.length>1) blocks.push({type:'h2',text:name});
+    blocks.push({type:'bullets',items});
+  }
+  return blocks;
+}
+async function parsePdf(buf){
+  await loadScript(CDN.pdf);
+  pdfjsLib.GlobalWorkerOptions.workerSrc=CDN.pdfWorker;
+  const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise;
+  const blocks=[];
+  for(let p=1;p<=pdf.numPages;p++){
+    const tc=await (await pdf.getPage(p)).getTextContent();
+    const lines=new Map();          // group text items by vertical position
+    for(const it of tc.items){
+      if(!it.str.trim()) continue;
+      const y=Math.round(it.transform[5]);
+      const key=[...lines.keys()].find(k=>Math.abs(k-y)<=2);
+      lines.set(key===undefined?y:key,((key===undefined?'':lines.get(key)+' '))+it.str);
+    }
+    const ordered=[...lines.entries()].sort((a,b)=>b[0]-a[0])
+      .map(e=>e[1].replace(/\s+/g,' ').trim()).filter(t=>t);
+    if(!ordered.length) continue;
+    if(pdf.numPages>1) blocks.push({type:'h3',text:'— Halaman '+p+' —'});
+    blocks.push({type:'p',text:ordered.join('\n')});
+  }
+  return blocks;
+}
+function parseTxt(txt){
+  return txt.split(/\r?\n\s*\r?\n/).map(s=>s.trim()).filter(s=>s).map(s=>({type:'p',text:s}));
+}
+function showImportChoice(title, blocks){
+  const host=document.getElementById('modalHost');
+  host._impBlocks=blocks; host._impTitle=title;
+  host.innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>📄 Import: ${esc(title)}</h3>
+      <p class="hint" style="margin:0 0 10px"><b>${blocks.length} blok teks</b> diekstrak. Selepas import, sunting blok (✎) dan highlight teks penting → butang <b>📋 [[ ]]</b> untuk jadikan butang salin.</p>
+      <label class="shr-item"><input type="radio" name="impmode" value="new" checked> ➕ Cipta panduan BARU: “${esc(title)}”</label>
+      <label class="shr-item"><input type="radio" name="impmode" value="append"> 📘 Tambah pada hujung panduan semasa${cur()?': “'+esc(cur().title)+'”':''}</label>
+      <div class="m-actions">
+        <button class="m-btn save" onclick="applyImport()">Import</button>
+        <button class="m-btn" onclick="closeModal()">Batal</button>
+      </div>
+    </div></div>`;
+}
+function applyImport(){
+  const host=document.getElementById('modalHost');
+  const mode=document.querySelector('input[name=impmode]:checked').value;
+  if(mode==='new' || !cur()){
+    const g={id:uid(), title:host._impTitle, subtitle:'Diimport pada '+new Date().toLocaleDateString('ms-MY'), blocks:host._impBlocks};
+    state.guides.push(g); state.currentId=g.id;
+  } else {
+    cur().blocks.push(...host._impBlocks);
+  }
+  state.mode='edit'; closeModal(); render(); toast('📄 Import berjaya — '+host._impBlocks.length+' blok ditambah!');
 }
 
 /* ---------- SHARE: export standalone reader HTML ---------- */

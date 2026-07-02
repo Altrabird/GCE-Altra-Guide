@@ -39,10 +39,14 @@ Aliran kerja penuh tanpa papan kekunci: *pilih teks → klik kanan di destinasi 
 2. 6 panduan GCE telah dimuatkan siap sedia (L1: Classroom, Docs, Forms · L2: Calendar, Classroom, Slides).
 3. **Sunting**: klik mana-mana blok → ✎. Highlight teks dalam editor → klik butang
    `📋 [[ ]] Tanda Teks` untuk menjadikannya butang salin. Format: `Taip nama: [[Geography]]`
-4. **Kongsi**: klik `📤 Kongsi (Eksport HTML)` → pilih panduan → muat turun satu fail HTML →
+4. **Import dokumen**: butang `📄 Import Dokumen` menerima **.docx / .pptx / .xlsx / .xls / .pdf / .txt** —
+   teks diekstrak menjadi blok panduan (boleh jadi panduan baru atau ditambah pada panduan semasa),
+   kemudian tanda `[[ ]]` pada teks penting. Import memerlukan internet (perpustakaan penghurai
+   dimuat dari CDN); fail .doc / .ppt lama perlu di-Save As ke format baru dahulu.
+5. **Kongsi**: klik `📤 Kongsi (Eksport HTML)` → pilih panduan → muat turun satu fail HTML →
    hantar melalui WhatsApp/Telegram/Drive/email. Penerima buka fail itu — baca sahaja, tak boleh sunting.
-5. **PDF**: klik `🖨️ Cetak / Simpan PDF` (butang salin dicetak sebagai teks bertanda ✂).
-6. **Backup**: `💾 Backup Data (JSON)` — simpan fail JSON; boleh import semula di komputer lain.
+6. **PDF**: klik `🖨️ Cetak / Simpan PDF` (butang salin dicetak sebagai teks bertanda ✂).
+7. **Backup**: `💾 Backup Data (JSON)` — simpan fail JSON; boleh import semula di komputer lain.
 
 ## Cara guna (Penerima)
 
