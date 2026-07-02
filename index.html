@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCE Altra Guide — Admin</title>
+<style>
+:root{
+  --bg:#f1f5f9; --paper:#ffffff; --ink:#1e293b; --muted:#64748b;
+  --brand:#1d4ed8; --brand2:#3b82f6; --chip:#dbeafe; --chipbd:#93c5fd; --chiptx:#1e40af;
+  --ok:#16a34a; --warn:#b45309; --warnbg:#fef3c7; --tipbg:#dcfce7; --tipbd:#86efac;
+  --checkbg:#f0f9ff; --checkbd:#7dd3fc; --danger:#dc2626; --line:#e2e8f0;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+button{font-family:inherit;cursor:pointer}
+
+/* ===== Layout ===== */
+#app{display:flex;min-height:100vh}
+#sidebar{width:290px;min-width:290px;background:#0f172a;color:#e2e8f0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+#main{flex:1;padding:28px 20px 80px;display:flex;flex-direction:column;align-items:center}
+.page{background:var(--paper);max-width:820px;width:100%;border-radius:14px;box-shadow:0 4px 24px rgba(15,23,42,.10);padding:44px 52px;position:relative}
+@media(max-width:760px){#app{flex-direction:column}#sidebar{width:100%;min-width:0;height:auto;position:static}.page{padding:24px 18px}}
+
+/* ===== Sidebar ===== */
+.sb-head{padding:18px 16px 12px;border-bottom:1px solid #1e293b}
+.sb-head h1{margin:0;font-size:17px;letter-spacing:.5px}
+.sb-head h1 span{color:#60a5fa}
+.sb-head p{margin:4px 0 0;font-size:11.5px;color:#94a3b8}
+.sb-sec{padding:12px 16px 4px;font-size:10.5px;letter-spacing:1.5px;color:#64748b;text-transform:uppercase}
+.gitem{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;color:#cbd5e1;padding:9px 16px;font-size:13px;border-left:3px solid transparent}
+.gitem:hover{background:#1e293b}
+.gitem.active{background:#1e3a8a;color:#fff;border-left-color:#60a5fa}
+.gitem .gi-ico{flex:none}
+.sb-btns{padding:14px 16px;display:flex;flex-direction:column;gap:8px;margin-top:auto;border-top:1px solid #1e293b}
+.sb-btn{display:flex;align-items:center;gap:8px;background:#1e293b;border:1px solid #334155;color:#e2e8f0;border-radius:8px;padding:9px 12px;font-size:13px}
+.sb-btn:hover{background:#334155}
+.sb-btn.primary{background:var(--brand);border-color:var(--brand2);font-weight:600}
+.sb-btn.primary:hover{background:#2563eb}
+
+/* ===== Topbar of page ===== */
+.topbar{max-width:820px;width:100%;display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.mode-tog{display:flex;background:#e2e8f0;border-radius:10px;padding:3px}
+.mode-tog button{border:none;background:none;padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted)}
+.mode-tog button.on{background:#fff;color:var(--brand);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.tb-btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--ink)}
+.tb-btn:hover{border-color:var(--brand2);color:var(--brand)}
+.tb-spacer{flex:1}
+
+/* ===== Guide header ===== */
+.g-title{font-size:27px;font-weight:800;margin:0 0 4px;color:#0f172a}
+.g-sub{font-size:14.5px;color:var(--muted);margin:0 0 6px}
+.g-hr{border:none;border-top:3px solid var(--brand);width:64px;margin:14px 0 26px}
+input.ed-title,textarea.ed-sub{width:100%;border:1.5px dashed #cbd5e1;border-radius:8px;padding:8px 10px;font-family:inherit}
+input.ed-title{font-size:24px;font-weight:800}
+textarea.ed-sub{font-size:14px;color:var(--muted);resize:vertical}
+
+/* ===== Blocks ===== */
+.blk{position:relative;margin:0 0 14px}
+.blk h2{font-size:18.5px;color:var(--brand);margin:26px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--chip)}
+.blk h3{font-size:15.5px;color:#0f172a;margin:18px 0 8px}
+.blk p{font-size:14.5px;line-height:1.75;margin:8px 0}
+.blk ol,.blk ul{margin:8px 0;padding-left:26px}
+.blk li{font-size:14.5px;line-height:1.8;margin:3px 0}
+.box{border-radius:10px;padding:13px 16px;font-size:14px;line-height:1.75}
+.box .bx-t{font-weight:700;display:block;margin-bottom:4px}
+.box-note{background:var(--warnbg);border:1px solid #fcd34d;color:#78350f}
+.box-tip{background:var(--tipbg);border:1px solid var(--tipbd);color:#14532d}
+.box-check{background:var(--checkbg);border:1px solid var(--checkbd);color:#0c4a6e}
+.box ul{list-style:none;padding-left:4px;margin:4px 0}
+.box-check li::before{content:"☑ ";color:#0284c7}
+.box-note li::before{content:"⚠ "}
+.box-tip li::before{content:"✔ ";color:var(--ok)}
+
+/* ===== Copy chip ===== */
+.chip{display:inline;background:var(--chip);border:1.5px solid var(--chipbd);color:var(--chiptx);
+  border-radius:7px;padding:2px 8px 2px 7px;font-size:.95em;font-weight:600;font-family:inherit;
+  line-height:1.9;white-space:pre-wrap;text-align:left;transition:background .15s,transform .1s;vertical-align:baseline}
+.chip::before{content:"📋 ";font-size:.85em}
+.chip:hover{background:#bfdbfe;transform:translateY(-1px);box-shadow:0 2px 6px rgba(29,78,216,.25)}
+.chip.copied{background:#bbf7d0;border-color:#4ade80;color:#166534}
+.chip.copied::before{content:"✅ "}
+
+/* ===== Edit-mode block controls ===== */
+.blk.editable{border:1.5px dashed transparent;border-radius:10px;padding:4px 8px}
+.blk.editable:hover{border-color:#93c5fd;background:#f8fafc}
+.blk-ctl{position:absolute;top:2px;right:2px;display:none;gap:3px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:2px;box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:5}
+.blk.editable:hover .blk-ctl{display:flex}
+.blk-ctl button{border:none;background:none;border-radius:6px;padding:4px 7px;font-size:13px}
+.blk-ctl button:hover{background:#eff6ff}
+.blk-ctl .del:hover{background:#fee2e2}
+.addblk{width:100%;border:1.5px dashed #cbd5e1;background:none;color:var(--muted);border-radius:10px;padding:10px;font-size:13.5px;margin-top:10px}
+.addblk:hover{border-color:var(--brand2);color:var(--brand);background:#eff6ff}
+
+/* ===== Modal ===== */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
+.modal{background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal h3{margin:0 0 14px;font-size:17px}
+.modal label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.5px}
+.modal select,.modal textarea,.modal input[type=text]{width:100%;border:1.5px solid var(--line);border-radius:9px;padding:9px 11px;font-size:14px;font-family:inherit}
+.modal textarea{min-height:170px;resize:vertical;line-height:1.6}
+.m-actions{display:flex;gap:8px;margin-top:18px}
+.m-btn{border-radius:9px;padding:9px 18px;font-size:14px;font-weight:600;border:1px solid var(--line);background:#fff}
+.m-btn.save{background:var(--brand);border-color:var(--brand);color:#fff}
+.m-btn.danger{color:var(--danger);border-color:#fecaca}
+.m-btn.danger:hover{background:#fee2e2}
+.mark-btn{background:var(--chip);border:1.5px solid var(--chipbd);color:var(--chiptx);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;margin:8px 0 0}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0;line-height:1.5}
+.hint code{background:#f1f5f9;border-radius:4px;padding:1px 5px;font-size:12px}
+.shr-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;margin:7px 0;font-size:14px}
+.shr-item input{width:17px;height:17px}
+
+/* ===== Toast & clipboard tray ===== */
+#toast{position:fixed;bottom:86px;left:50%;transform:translateX(-50%) translateY(20px);background:#0f172a;color:#fff;
+  padding:10px 20px;border-radius:99px;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;z-index:200;max-width:80vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#tray{position:fixed;bottom:16px;right:16px;background:#fff;border:1.5px solid var(--chipbd);border-radius:12px;
+  padding:10px 14px;max-width:330px;box-shadow:0 6px 24px rgba(0,0,0,.16);font-size:12.5px;z-index:150;display:none}
+#tray .t-lab{font-weight:700;color:var(--brand);font-size:11px;text-transform:uppercase;letter-spacing:.6px}
+#tray .t-txt{color:var(--ink);margin-top:3px;white-space:pre-wrap;max-height:76px;overflow:hidden;line-height:1.5}
+#tray .t-hint{color:var(--muted);margin-top:5px;font-size:11px}
+
+/* ===== Practice paste area ===== */
+.practice{margin-top:34px;border-top:1.5px dashed var(--line);padding-top:18px}
+.practice h4{margin:0 0 6px;font-size:13.5px;color:var(--muted)}
+.practice textarea{width:100%;min-height:70px;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit;resize:vertical}
+
+/* ===== Print ===== */
+@media print{
+  #sidebar,.topbar,#tray,#toast,.practice,.blk-ctl,.addblk{display:none!important}
+  body{background:#fff}
+  #main{padding:0}
+  .page{box-shadow:none;border-radius:0;padding:10mm 6mm;max-width:none}
+  .chip{border:1.5px solid #94a3b8;background:#f1f5f9;color:#000}
+  .chip::before{content:"✂ "}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="sb-head">
+      <h1>GCE <span>Altra Guide</span></h1>
+      <p>Sistem Panduan Salin &amp; Tampal · Mod Admin</p>
+    </div>
+    <div class="sb-sec">Panduan Saya</div>
+    <div id="glist"></div>
+    <div class="sb-btns">
+      <button class="sb-btn" onclick="newGuide()">➕ Panduan Baru</button>
+      <button class="sb-btn primary" onclick="openShare()">📤 Kongsi (Eksport HTML)</button>
+      <button class="sb-btn" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+      <button class="sb-btn" onclick="exportJSON()">💾 Backup Data (JSON)</button>
+      <button class="sb-btn" onclick="document.getElementById('impfile').click()">📥 Import Data (JSON)</button>
+      <input type="file" id="impfile" accept=".json" style="display:none" onchange="importJSON(this)">
+    </div>
+  </aside>
+
+  <main id="main">
+    <div class="topbar">
+      <div class="mode-tog">
+        <button id="mEdit" class="on" onclick="setMode('edit')">✏️ Sunting</button>
+        <button id="mPrev" onclick="setMode('preview')">👁️ Pratonton</button>
+      </div>
+      <div class="tb-spacer"></div>
+      <button class="tb-btn" onclick="renameGuide()">✎ Nama Panduan</button>
+      <button class="tb-btn" style="color:var(--danger)" onclick="deleteGuide()">🗑 Padam Panduan</button>
+    </div>
+    <div class="page" id="page"></div>
+  </main>
+</div>
+
+<div id="toast"></div>
+<div id="tray">
+  <div class="t-lab">📋 Disalin ke clipboard</div>
+  <div class="t-txt" id="trayTxt"></div>
+  <div class="t-hint">Klik <b>KANAN</b> di destinasi = tampal terus (dengan AltraPaste) · atau Ctrl+V</div>
+</div>
+
+<div id="modalHost"></div>
+
+<script>
+/* =====================================================================
+   GCE ALTRA GUIDE — Admin builder
+   Data model: guide = {id,title,subtitle,blocks:[{type,text|items[]}]}
+   Copyable snippets are marked inline with [[double brackets]].
+   ===================================================================== */
+
+const LS_KEY = 'gceAltraGuides.v1';
+const TYPE_LABEL = {h2:'Tajuk Seksyen (Task)',h3:'Sub-tajuk',p:'Perenggan',steps:'Langkah bernombor (1,2,3…)',bullets:'Senarai bullet',note:'⚠ Kotak Amaran',tip:'💡 Kotak Tip',check:'☑ Senarai Semak'};
+
+let state = { guides: [], currentId: null, mode: 'edit' };
+let lastCopied = '';
+
+/* ---------- persistence ---------- */
+function save(){ localStorage.setItem(LS_KEY, JSON.stringify({guides:state.guides,currentId:state.currentId})); }
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ const d = JSON.parse(raw); if(d.guides && d.guides.length){ state.guides=d.guides; state.currentId=d.currentId||d.guides[0].id; return; } }
+  }catch(e){}
+  state.guides = seedGuides();
+  state.currentId = state.guides[0].id;
+  save();
+}
+function cur(){ return state.guides.find(g=>g.id===state.currentId); }
+function uid(){ return 'g'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+/* ---------- rendering ---------- */
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function parseChips(s){
+  return esc(s).replace(/\[\[([\s\S]+?)\]\]/g, (m,txt)=>{
+    // txt is already HTML-escaped; decode for the data attribute
+    const raw = txt.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
+    return `<button class="chip" data-copy="${encodeURIComponent(raw)}" title="Klik kiri untuk SALIN">${txt}</button>`;
+  }).replace(/\n/g,'<br>');
+}
+function blockHTML(b){
+  switch(b.type){
+    case 'h2': return `<h2>${parseChips(b.text)}</h2>`;
+    case 'h3': return `<h3>${parseChips(b.text)}</h3>`;
+    case 'p':  return `<p>${parseChips(b.text)}</p>`;
+    case 'steps':   return `<ol>${b.items.map(i=>`<li>${parseChips(i)}</li>`).join('')}</ol>`;
+    case 'bullets': return `<ul>${b.items.map(i=>`<li>${parseChips(i)}</li>`).join('')}</ul>`;
+    case 'note': return `<div class="box box-note"><span class="bx-t">⚠️ PENTING</span><ul>${b.items.map(i=>`<li>${parseChips(i)}</li>`).join('')}</ul></div>`;
+    case 'tip':  return `<div class="box box-tip"><span class="bx-t">💡 TIP LULUS</span><ul>${b.items.map(i=>`<li>${parseChips(i)}</li>`).join('')}</ul></div>`;
+    case 'check':return `<div class="box box-check"><span class="bx-t">✅ SENARAI SEMAK AKHIR</span><ul>${b.items.map(i=>`<li>${parseChips(i)}</li>`).join('')}</ul></div>`;
+    default: return '';
+  }
+}
+function guideBodyHTML(g){
+  return `<h1 class="g-title">${esc(g.title)}</h1>
+    ${g.subtitle?`<p class="g-sub">${esc(g.subtitle)}</p>`:''}
+    <hr class="g-hr">
+    ${g.blocks.map(blockHTML).join('')}`;
+}
+
+function render(){
+  // sidebar list
+  document.getElementById('glist').innerHTML = state.guides.map(g=>
+    `<button class="gitem${g.id===state.currentId?' active':''}" onclick="switchGuide('${g.id}')">
+      <span class="gi-ico">📘</span><span>${esc(g.title)}</span></button>`).join('');
+  const g = cur();
+  const page = document.getElementById('page');
+  if(!g){ page.innerHTML = '<p style="color:var(--muted)">Tiada panduan. Klik ➕ Panduan Baru.</p>'; return; }
+
+  document.getElementById('mEdit').classList.toggle('on', state.mode==='edit');
+  document.getElementById('mPrev').classList.toggle('on', state.mode==='preview');
+
+  if(state.mode==='preview'){
+    page.innerHTML = guideBodyHTML(g) + practiceHTML();
+  } else {
+    page.innerHTML = `<h1 class="g-title">${esc(g.title)}</h1>
+      ${g.subtitle?`<p class="g-sub">${esc(g.subtitle)}</p>`:''}
+      <hr class="g-hr">
+      ${g.blocks.map((b,i)=>`
+        <div class="blk editable">
+          <div class="blk-ctl">
+            <button title="Naik" onclick="moveBlk(${i},-1)">↑</button>
+            <button title="Turun" onclick="moveBlk(${i},1)">↓</button>
+            <button title="Sunting" onclick="editBlk(${i})">✎</button>
+            <button title="Padam" class="del" onclick="delBlk(${i})">✕</button>
+          </div>
+          ${blockHTML(b)}
+        </div>`).join('')}
+      <button class="addblk" onclick="editBlk(-1)">➕ Tambah Blok Baru</button>`;
+  }
+  save();
+}
+function practiceHTML(){
+  return `<div class="practice">
+    <h4>🧪 Kawasan latihan tampal — klik KANAN di dalam kotak ini untuk tampal item terakhir disalin:</h4>
+    <textarea placeholder="Klik kanan di sini selepas menyalin sesuatu…"></textarea>
+  </div>`;
+}
+
+/* ---------- copy / paste ---------- */
+function copyText(t){
+  lastCopied = t;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).catch(()=>fallbackCopy(t));
+  } else fallbackCopy(t);
+  const one = t.split('\n')[0];
+  toast('✅ Disalin: “'+(one.length>48?one.slice(0,48)+'…':one)+'”');
+  const tray = document.getElementById('tray');
+  document.getElementById('trayTxt').textContent = t.length>160? t.slice(0,160)+'…' : t;
+  tray.style.display='block';
+}
+function fallbackCopy(t){
+  const ta=document.createElement('textarea'); ta.value=t; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select(); try{document.execCommand('copy')}catch(e){} ta.remove();
+}
+let toastTimer=null;
+function toast(msg){
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2200);
+}
+// LEFT-CLICK chip => copy
+document.addEventListener('click', e=>{
+  const chip = e.target.closest('.chip');
+  if(!chip) return;
+  copyText(decodeURIComponent(chip.dataset.copy));
+  chip.classList.add('copied');
+  setTimeout(()=>chip.classList.remove('copied'),1600);
+});
+// RIGHT-CLICK inside editable field => paste last copied
+document.addEventListener('contextmenu', e=>{
+  const t=e.target;
+  const editable = t.matches('textarea, input[type=text], input:not([type])') || t.isContentEditable;
+  if(editable && lastCopied){
+    e.preventDefault();
+    insertAt(t, lastCopied);
+    toast('📌 Ditampal!');
+  }
+});
+function insertAt(el, text){
+  if(el.isContentEditable){ document.execCommand('insertText', false, text); return; }
+  const s=el.selectionStart??el.value.length, epos=el.selectionEnd??el.value.length;
+  el.value = el.value.slice(0,s)+text+el.value.slice(epos);
+  el.selectionStart=el.selectionEnd=s+text.length; el.focus();
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+}
+
+/* ---------- guide management ---------- */
+function switchGuide(id){ state.currentId=id; render(); }
+function setMode(m){ state.mode=m; render(); }
+function newGuide(){
+  const title = prompt('Nama panduan baru:','Panduan Baru');
+  if(title===null) return;
+  const g = {id:uid(), title:title||'Panduan Baru', subtitle:'', blocks:[
+    {type:'note', items:['Semua tindakan mesti dibuat dalam akaun exam lab.','Ejaan mesti [[100% tepat]] — gunakan butang salin biru.']},
+    {type:'h2', text:'TASK 1: Tajuk task di sini'},
+    {type:'steps', items:['Langkah pertama…','Taip nama berikut: [[Contoh Teks Untuk Disalin]]','Klik Check my progress.']},
+  ]};
+  state.guides.push(g); state.currentId=g.id; state.mode='edit'; render();
+}
+function renameGuide(){
+  const g=cur(); if(!g) return;
+  const t = prompt('Tajuk panduan:', g.title); if(t===null) return;
+  const s = prompt('Sub-tajuk (boleh kosong):', g.subtitle||''); if(s===null) return;
+  g.title=t||g.title; g.subtitle=s; render();
+}
+function deleteGuide(){
+  const g=cur(); if(!g) return;
+  if(!confirm('Padam panduan “'+g.title+'”? Tindakan ini tidak boleh diundur.')) return;
+  state.guides = state.guides.filter(x=>x.id!==g.id);
+  state.currentId = state.guides.length? state.guides[0].id : null;
+  render();
+}
+function moveBlk(i,d){
+  const b=cur().blocks; const j=i+d;
+  if(j<0||j>=b.length) return;
+  [b[i],b[j]]=[b[j],b[i]]; render();
+}
+function delBlk(i){
+  if(!confirm('Padam blok ini?')) return;
+  cur().blocks.splice(i,1); render();
+}
+
+/* ---------- block editor modal ---------- */
+function editBlk(i){
+  const g=cur();
+  const isNew = i<0;
+  const b = isNew? {type:'p', text:'', items:[]} : g.blocks[i];
+  const isList = ['steps','bullets','note','tip','check'].includes(b.type);
+  const content = isList? (b.items||[]).join('\n') : (b.text||'');
+  const host=document.getElementById('modalHost');
+  host.innerHTML = `<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>${isNew?'➕ Tambah Blok':'✏️ Sunting Blok'}</h3>
+      <label>Jenis blok</label>
+      <select id="mType">${Object.entries(TYPE_LABEL).map(([k,v])=>`<option value="${k}"${k===b.type?' selected':''}>${v}</option>`).join('')}</select>
+      <label>Kandungan <span style="text-transform:none;font-weight:400">(untuk senarai: satu item setiap baris)</span></label>
+      <textarea id="mText">${esc(content)}</textarea>
+      <button class="mark-btn" onclick="markSel()">📋 [[ ]] Tanda Teks Pilihan Sebagai "Boleh Salin"</button>
+      <p class="hint">Highlight teks dalam kotak di atas, kemudian klik butang biru — teks itu akan dibalut dengan <code>[[ ]]</code> dan menjadi <b>butang salin</b> untuk pembaca. Contoh: <code>Taip nama kelas: [[Geography]]</code></p>
+      <div class="m-actions">
+        <button class="m-btn save" onclick="saveBlk(${i})">Simpan</button>
+        <button class="m-btn" onclick="closeModal()">Batal</button>
+      </div>
+    </div></div>`;
+  document.getElementById('mText').focus();
+}
+function markSel(){
+  const ta=document.getElementById('mText');
+  const s=ta.selectionStart, e=ta.selectionEnd;
+  if(s===e){ alert('Sila highlight teks yang hendak ditanda dahulu.'); return; }
+  ta.value = ta.value.slice(0,s)+'[['+ta.value.slice(s,e)+']]'+ta.value.slice(e);
+  ta.selectionStart=s; ta.selectionEnd=e+4; ta.focus();
+}
+function splitItems(txt){
+  // One item per line, BUT keep multi-line [[ ]] copy-snippets inside one item
+  const items=[]; let buf='';
+  for(const l of txt.split('\n')){
+    buf = buf? buf+'\n'+l : l;
+    const opens=(buf.match(/\[\[/g)||[]).length, closes=(buf.match(/\]\]/g)||[]).length;
+    if(opens<=closes){ if(buf.trim()!=='') items.push(buf); buf=''; }
+  }
+  if(buf.trim()!=='') items.push(buf);
+  return items;
+}
+function saveBlk(i){
+  const g=cur();
+  const type=document.getElementById('mType').value;
+  const txt=document.getElementById('mText').value;
+  const isList=['steps','bullets','note','tip','check'].includes(type);
+  const b = isList? {type, items: splitItems(txt)} : {type, text: txt};
+  if(i<0) g.blocks.push(b); else g.blocks[i]=b;
+  closeModal(); render();
+}
+function closeModal(){ document.getElementById('modalHost').innerHTML=''; }
+
+/* ---------- JSON backup ---------- */
+function exportJSON(){
+  download('GCE-Altra-Guide-backup.json', JSON.stringify({guides:state.guides},null,2), 'application/json');
+}
+function importJSON(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+      const d=JSON.parse(r.result);
+      if(!d.guides) throw 0;
+      if(confirm('Import '+d.guides.length+' panduan? (Ditambah kepada senarai sedia ada)')){
+        d.guides.forEach(g=>{ g.id=uid(); state.guides.push(g); });
+        render(); toast('📥 Import berjaya!');
+      }
+    }catch(e){ alert('Fail JSON tidak sah.'); } inp.value=''; };
+  r.readAsText(f);
+}
+function download(name, content, mime){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download=name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+/* ---------- SHARE: export standalone reader HTML ---------- */
+function openShare(){
+  const host=document.getElementById('modalHost');
+  host.innerHTML = `<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>📤 Kongsi Panduan (Fail HTML Baca-Sahaja)</h3>
+      <p class="hint" style="margin:0 0 10px">Pilih panduan untuk dikongsi. Satu fail <b>HTML</b> akan dimuat turun — hantar fail itu melalui WhatsApp / Telegram / Google Drive / email. Penerima hanya boleh <b>baca &amp; salin</b>, tidak boleh sunting. Mereka juga boleh Cetak → Simpan sebagai PDF dari fail itu.</p>
+      ${state.guides.map((g,i)=>`<label class="shr-item"><input type="checkbox" class="shr-cb" value="${i}" checked> 📘 ${esc(g.title)}</label>`).join('')}
+      <div class="m-actions">
+        <button class="m-btn save" onclick="doShare()">⬇ Muat Turun Fail HTML</button>
+        <button class="m-btn" onclick="closeModal()">Batal</button>
+      </div>
+    </div></div>`;
+}
+function doShare(){
+  const idx=[...document.querySelectorAll('.shr-cb:checked')].map(c=>+c.value);
+  if(!idx.length){ alert('Pilih sekurang-kurangnya satu panduan.'); return; }
+  const guides = idx.map(i=>state.guides[i]);
+  download('GCE-Altra-Guide.html', buildReaderHTML(guides), 'text/html');
+  closeModal(); toast('📤 Fail panduan dimuat turun!');
+}
+
+function buildReaderHTML(guides){
+  const css = document.querySelector('style').textContent;
+  const data = JSON.stringify(guides).replace(/<\/script/gi,'<\\/script');
+  return `<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCE Altra Guide</title>
+<style>${css}
+/* reader tweaks */
+.rd-bar{position:sticky;top:0;z-index:50;background:#0f172a;color:#e2e8f0;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rd-bar b span{color:#60a5fa}
+.rd-tabs{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.rd-tab{border:1px solid #334155;background:#1e293b;color:#cbd5e1;border-radius:99px;padding:6px 14px;font-size:12.5px}
+.rd-tab.on{background:#1d4ed8;border-color:#3b82f6;color:#fff;font-weight:700}
+.rd-print{border:1px solid #334155;background:#1e293b;color:#e2e8f0;border-radius:8px;padding:6px 12px;font-size:12.5px}
+.rd-howto{max-width:820px;margin:16px auto 0;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:12px 18px;font-size:13.5px;color:#1e3a8a;line-height:1.7}
+#rmain{padding:20px 16px 80px;display:flex;justify-content:center}
+@media print{.rd-bar,.rd-howto{display:none!important}}
+</style>
+</head>
+<body>
+<div class="rd-bar">
+  <b>📘 GCE <span>Altra Guide</span></b>
+  <div class="rd-tabs" id="rtabs"></div>
+  <button class="rd-print" onclick="window.print()">🖨️ Cetak / PDF</button>
+</div>
+<div class="rd-howto">
+  <b>Cara guna:</b> ① Klik <b>KIRI</b> pada mana-mana kotak biru 📋 untuk <b>SALIN</b> teks tepat.
+  ② Pergi ke tempat destinasi (Google Classroom, Forms, dll.) dan <b>TAMPAL</b>: klik <b>KANAN</b> = tampal terus jika AltraPaste dihidupkan, atau tekan <b>Ctrl+V</b>.
+  Ejaan dijamin 100% tepat — tiada risiko salah taip!
+</div>
+<div id="rmain"><div class="page" id="page"></div></div>
+<div id="toast"></div>
+<div id="tray">
+  <div class="t-lab">📋 Disalin ke clipboard</div>
+  <div class="t-txt" id="trayTxt"></div>
+  <div class="t-hint">Klik <b>KANAN</b> di destinasi = tampal terus (dengan AltraPaste) · atau Ctrl+V</div>
+</div>
+<script>
+const GUIDES=${data};
+let curIdx=0, lastCopied='';
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function parseChips(s){return esc(s).replace(/\\[\\[([\\s\\S]+?)\\]\\]/g,(m,t)=>{const raw=t.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');return '<button class="chip" data-copy="'+encodeURIComponent(raw)+'" title="Klik kiri untuk SALIN">'+t+'</button>'}).replace(/\\n/g,'<br>')}
+function blockHTML(b){const li=x=>x.map(i=>'<li>'+parseChips(i)+'</li>').join('');
+  if(b.type==='h2')return '<h2>'+parseChips(b.text)+'</h2>';
+  if(b.type==='h3')return '<h3>'+parseChips(b.text)+'</h3>';
+  if(b.type==='p')return '<p>'+parseChips(b.text)+'</p>';
+  if(b.type==='steps')return '<ol>'+li(b.items)+'</ol>';
+  if(b.type==='bullets')return '<ul>'+li(b.items)+'</ul>';
+  if(b.type==='note')return '<div class="box box-note"><span class="bx-t">⚠️ PENTING</span><ul>'+li(b.items)+'</ul></div>';
+  if(b.type==='tip')return '<div class="box box-tip"><span class="bx-t">💡 TIP LULUS</span><ul>'+li(b.items)+'</ul></div>';
+  if(b.type==='check')return '<div class="box box-check"><span class="bx-t">✅ SENARAI SEMAK AKHIR</span><ul>'+li(b.items)+'</ul></div>';
+  return ''}
+function render(){
+  document.getElementById('rtabs').innerHTML=GUIDES.map((g,i)=>'<button class="rd-tab'+(i===curIdx?' on':'')+'" onclick="curIdx='+i+';render()">'+esc(g.title)+'</button>').join('');
+  const g=GUIDES[curIdx];
+  document.getElementById('page').innerHTML='<h1 class="g-title">'+esc(g.title)+'</h1>'+(g.subtitle?'<p class="g-sub">'+esc(g.subtitle)+'</p>':'')+'<hr class="g-hr">'+g.blocks.map(blockHTML).join('')+
+  '<div class="practice"><h4>🧪 Kawasan latihan tampal — klik KANAN di dalam kotak ini untuk tampal item terakhir disalin:</h4><textarea placeholder="Klik kanan di sini selepas menyalin sesuatu…"></textarea></div>';
+  window.scrollTo(0,0)}
+function copyText(t){lastCopied=t;
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(()=>fb(t))}else fb(t);
+  const one=t.split('\\n')[0];toast('✅ Disalin: “'+(one.length>48?one.slice(0,48)+'…':one)+'”');
+  document.getElementById('trayTxt').textContent=t.length>160?t.slice(0,160)+'…':t;
+  document.getElementById('tray').style.display='block'}
+function fb(t){const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();try{document.execCommand('copy')}catch(e){}a.remove()}
+let tt=null;function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),2200)}
+document.addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;copyText(decodeURIComponent(c.dataset.copy));c.classList.add('copied');setTimeout(()=>c.classList.remove('copied'),1600)});
+document.addEventListener('contextmenu',e=>{const t=e.target;
+  const ed=t.matches('textarea, input[type=text], input:not([type])')||t.isContentEditable;
+  if(ed&&lastCopied){e.preventDefault();
+    const s=t.selectionStart??t.value.length,p=t.selectionEnd??t.value.length;
+    t.value=t.value.slice(0,s)+lastCopied+t.value.slice(p);
+    t.selectionStart=t.selectionEnd=s+lastCopied.length;t.focus();toast('📌 Ditampal!')}});
+render();
+<\/script>
+</body>
+</html>`;
+}
+
+/* =====================================================================
+   SEED DATA — 6 GCE exam-lab guides (from PDF Guider folder)
+   ===================================================================== */
+function seedGuides(){
+  return [
+  {id:uid(),title:'GCE L1 — Lab: Google Classroom',subtitle:'Panduan langkah demi langkah · Exam Lab Level 1',blocks:[
+    {type:'note',items:[
+      'Semua tindakan mesti dibuat dalam akaun exam lab (Incognito atau Remote Browser / Guacamole).',
+      'Ejaan nama kelas, tugasan, topik dan mesej mestilah 100% sama — gunakan butang salin biru 📋.',
+      'JANGAN tekan Assign sebelum Task 4.']},
+    {type:'h2',text:'TASK 1: Create a class in Google Classroom'},
+    {type:'steps',items:[
+      'Dalam Remote Browser (Guacamole), buka: [[classroom.google.com]]',
+      'Pastikan anda log masuk akaun exam lab.',
+      'Di penjuru kanan atas, klik ikon + (Create / Tambah).',
+      'Pilih Create class. Jika keluar mesej amaran, klik Continue.',
+      'Class name: [[Geography]] — biarkan ruangan lain kosong.',
+      'Klik Create dan tunggu kelas berjaya dibuka.',
+      'Kembali ke tab arahan exam dan klik Check my progress. ✅ Status: Create a class in Google Classroom – Completed']},
+    {type:'h2',text:'TASK 2: Create an assignment in Google Classroom'},
+    {type:'steps',items:[
+      'Masuk ke kelas Geography → klik tab Classwork.',
+      'Klik Create → pilih Assignment.',
+      'Title: [[Capital Cities]]',
+      'Instructions (Description): [[Watch the video and write a short document about the place where you live]]',
+      'JANGAN klik Assign — biarkan sebagai Draft.',
+      'Klik Check my progress. ✅ Status: Create an assignment in Google Classroom – Completed']},
+    {type:'h2',text:'TASK 3: Attach a video and document from Google Drive'},
+    {type:'steps',items:[
+      'Masih dalam tugasan Capital Cities, klik Add → Google Drive.',
+      'Cari dan pilih fail: [[Capital Cities for 4th Graders.mp4]] → klik Add.',
+      'Klik Add → Google Drive sekali lagi.',
+      'Cari fail: [[Cities Assignment]] → klik Add.',
+      'Pada dokumen tersebut, klik menu Students can view file → tukar kepada Make a copy for each student.',
+      'Pastikan: video MP4 ✔ dan dokumen template ✔. JANGAN klik Assign lagi.',
+      'Klik Check my progress. ✅ Status: Attach a video and document from Google Drive – Completed']},
+    {type:'h2',text:'TASK 4: Create a topic and set a due date'},
+    {type:'steps',items:[
+      'Dalam tugasan Capital Cities, di bahagian Topic, klik No topic → Create topic.',
+      'Taip: [[Cities]] kemudian tekan Enter.',
+      'Tetapkan Due date: pilih tarikh ESOK (next day). Masa biarkan default.',
+      'Sekarang barulah klik Assign dan tunggu tugasan berjaya dipaparkan.',
+      'Klik Check my progress. ✅ Status: Create a topic and set a due date – Completed']},
+    {type:'h2',text:'TASK 5: Post an announcement in class'},
+    {type:'steps',items:[
+      'Masuk tab Stream dalam kelas Geography.',
+      'Klik Share something with your class.',
+      'Taip mesej berikut TEPAT: [[Reminder: The Capital Cities assignment is due tomorrow.]]',
+      'Klik Post.',
+      'Klik Check my progress. ✅ Status: Post an announcement in class – Completed']},
+    {type:'check',items:[
+      'Kelas: Geography','Tugasan: Capital Cities','Video MP4 dilampirkan',
+      'Dokumen Make a copy for each student','Topik: Cities','Due date: Esok',
+      'Tugasan Assigned','Announcement dipos di Stream']},
+    {type:'tip',items:[
+      'Jangan ubah ejaan walau satu huruf — salin sahaja!',
+      'Jangan assign terlalu awal.','Jangan guna akaun peribadi.',
+      'Tunggu setiap Check my progress jadi hijau.']},
+  ]},
+
+  {id:uid(),title:'GCE L1 — Lab: Google Docs',subtitle:'Panduan langkah demi langkah · Exam Lab Level 1',blocks:[
+    {type:'note',items:[
+      'Semua kerja mesti dibuat dalam akaun exam lab (Remote Browser / Guacamole).',
+      'Ejaan, huruf besar/kecil, simbol @ mesti tepat 100% — gunakan butang salin biru 📋.',
+      'Jangan buat langkah tambahan yang tidak diminta.']},
+    {type:'h2',text:'TASK 1: Create a Google Docs document'},
+    {type:'steps',items:[
+      'Dalam Remote Browser (Guacamole), buka Google Docs ([[docs.google.com]]).',
+      'Klik Blank document (+).',
+      'Di penjuru atas kiri, klik Untitled document dan tukar nama kepada: [[Supply List]] → tekan Enter.',
+      'Dalam dokumen, taip ayat berikut TANPA ubah walau satu perkataan: [[The supplies needed for the project are the following: tape, scissors, pens, pencils, and paper.]]',
+      'Pastikan: ada noktah (.), ada koma (,), perkataan pens dan pencils wujud (penting untuk Task 4).',
+      'Kembali ke tab arahan → klik Check my progress. ✅ Status: Create a Google Docs document – Completed']},
+    {type:'h2',text:'TASK 2: Share the document'},
+    {type:'steps',items:[
+      'Masih dalam dokumen Supply List, klik butang Share (biru, atas kanan).',
+      'Dalam ruangan Add people, taip: [[Educator 1]]',
+      'Klik menu peranan → pilih Commenter.',
+      'Klik Send, kemudian tutup tetingkap Share.',
+      'Klik Check my progress. ✅ Status: Share the document – Completed']},
+    {type:'h2',text:'TASK 3: Configure document settings'},
+    {type:'steps',items:[
+      'Klik Share sekali lagi → klik ikon ⚙ Settings.',
+      'TANDAKAN ✔: Editors can\'t change permissions and share.',
+      'NYAHTANDAKAN ✘: Viewers and commenters can see the option to download, print, and copy.',
+      'Klik Save → klik Done.',
+      'Klik Check my progress. ✅ Status: Configure settings for Google Docs – Completed']},
+    {type:'h2',text:'TASK 4: Add comments to Google Docs text'},
+    {type:'h3',text:'Komen 1 — perkataan "pens"'},
+    {type:'steps',items:[
+      'Dalam ayat, highlight perkataan pens SAHAJA.',
+      'Klik ikon Add comment.',
+      'Taip: [[Get red pens]]',
+      'Klik Comment.']},
+    {type:'h3',text:'Komen 2 — perkataan "pencils"'},
+    {type:'steps',items:[
+      'Highlight perkataan pencils SAHAJA.',
+      'Klik Add comment.',
+      'Taip TEPAT seperti ini: [[@Educator 1 Buy pencils by Tuesday]]',
+      'Pastikan ada simbol @ dan nama Educator 1 betul.',
+      'Klik Comment.',
+      'Klik Check my progress. ✅ Status: Add comments to Google Docs text – Completed']},
+    {type:'h2',text:'TASK 5: Create a folder and move a document'},
+    {type:'steps',items:[
+      'Buka Google Drive → klik New → Folder.',
+      'Namakan folder: [[Supply List Committee]] → klik Create.',
+      'Cari fail Supply List → klik kanan pada fail → Move to.',
+      'Pilih folder Supply List Committee → klik Move.',
+      'Klik Check my progress. ✅ Status: Create a folder and move a document – Completed']},
+    {type:'check',items:[
+      'Dokumen bernama Supply List','Ayat lengkap & tepat',
+      'Dikongsi dengan Educator 1 (Commenter)','Tetapan keselamatan betul',
+      '2 komen ditambah (pens & pencils)','Folder Supply List Committee wujud',
+      'Fail dipindahkan ke folder tersebut']},
+    {type:'tip',items:[
+      'Jangan tambah ayat lain.','Jangan tukar susunan perkataan.',
+      'Jangan padam komen selepas dibuat.','Pastikan Check my progress jadi hijau.']},
+  ]},
+
+  {id:uid(),title:'GCE L1 — Lab: Google Forms',subtitle:'Self-Graded Quiz · Exam Lab Level 1',blocks:[
+    {type:'note',items:[
+      'Semua kerja WAJIB dibuat dalam akaun exam lab (Remote Browser / Guacamole).',
+      'Nama borang, soalan, jawapan dan ejaan mesti 100% sama — gunakan butang salin biru 📋.',
+      'Jangan tambah soalan atau tetapan lain yang tidak diminta.']},
+    {type:'h2',text:'TASK 1: Create a form with Google Forms'},
+    {type:'steps',items:[
+      'Dalam Remote Browser (Guacamole), buka Google Forms ([[forms.google.com]]).',
+      'Klik Blank form (+).',
+      'Di penjuru atas kiri, klik Untitled form dan tukar nama fail kepada: [[Our Solar System]] → tekan Enter.',
+      'Klik tajuk borang (Form title) dan pastikan juga bertajuk: [[Our Solar System]]',
+      'Klik ikon Settings ⚙ → pada tab General: TANDAKAN ✔ Collect email addresses → pilih Verified → klik Save.',
+      'Klik soalan pertama → pilih Short answer → taip soalan: [[Student Name]]',
+      'Klik Check my progress. ✅ Status: Create form with Google Forms – Completed']},
+    {type:'h2',text:'TASK 2: Add questions to the form'},
+    {type:'h3',text:'Tambah gambar Solar System'},
+    {type:'steps',items:[
+      'Klik ikon Add image di sebelah kanan → pilih Google Drive.',
+      'Cari fail: [[Solar System.png]] → klik Insert.',
+      'Klik pada teks tajuk gambar → taip: [[Solar System]] (tajuk gambar, bukan soalan).']},
+    {type:'h3',text:'Soalan Short answer'},
+    {type:'steps',items:[
+      'Klik ikon + (Add question) → pilih Short answer.',
+      'Taip soalan: [[How many moons does Mercury have?]]']},
+    {type:'h3',text:'Soalan Multiple choice'},
+    {type:'steps',items:[
+      'Klik + (Add question) → pilih Multiple choice.',
+      'Taip soalan: [[What is the third planet from the sun?]]',
+      'Option 1: [[Mercury]] · Option 2: [[Venus]] · Option 3: [[Earth]] · Option 4: [[Mars]]']},
+    {type:'h3',text:'Soalan Dropdown'},
+    {type:'steps',items:[
+      'Klik + (Add question) → pilih Dropdown.',
+      'Taip soalan: [[Which is the largest planet?]]',
+      'Option 1: [[Jupiter]] · Option 2: [[Saturn]] · Option 3: [[Uranus]] · Option 4: [[Neptune]]']},
+    {type:'h3',text:'Soalan Paragraph'},
+    {type:'steps',items:[
+      'Klik + (Add question) → pilih Paragraph.',
+      'Taip soalan: [[What is your favorite planet and why?]]',
+      'Klik Check my progress. ✅ Status: Add questions to the form – Completed']},
+    {type:'h2',text:'TASK 3: Create the answer key'},
+    {type:'steps',items:[
+      'Klik Settings ⚙ → tab Quizzes → TANDAKAN ✔ Make this a quiz → klik Save.',
+      'Soalan "What is the third planet from the sun?": klik soalan → Answer key → pilih jawapan Earth → klik Done.',
+      'Soalan "How many moons does Mercury have?": klik soalan → Answer key → taip: [[0]] → klik Done.',
+      'Soalan "Which is the largest planet?": klik soalan → Answer key → pilih Jupiter → klik Done.',
+      'Klik Check my progress. ✅ Status: Create answer key – Completed']},
+    {type:'h2',text:'TASK 4: Send the form via email'},
+    {type:'p',text:'⚠ Tiada Check my progress untuk task ini — teruskan ke Task 5 selepas selesai.'},
+    {type:'steps',items:[
+      'Klik butang Send (ikon kapal terbang).',
+      'Pilih ikon Email.',
+      'Dalam ruangan penerima, pilih Student 1 (yang telah disediakan oleh sistem).',
+      'TANDAKAN ✔ Include form in email.',
+      'Klik Send.']},
+    {type:'h2',text:'TASK 5: Create a spreadsheet for responses'},
+    {type:'steps',items:[
+      'Klik ikon More (⋮) → Add collaborators.',
+      'Tambah: [[Teacher 1]] dan [[Teacher 2]] — akses Editor sudah memadai.',
+      'Tutup tetingkap.',
+      'Klik tab Responses → klik ikon Create spreadsheet (ikon hijau).',
+      'Pilih Create a new spreadsheet dan namakan: [[Our Solar System (Responses)]]',
+      'Klik Create.',
+      'Klik Check my progress. ✅ Status: Create spreadsheet for responses – Completed']},
+    {type:'check',items:[
+      'Borang Our Solar System','Collect verified email ✔','5 soalan lengkap',
+      'Gambar Solar System.png dengan tajuk','Quiz diaktifkan','Answer key betul',
+      'Form dihantar kepada Student 1','Teacher 1 & Teacher 2 sebagai kolaborator',
+      'Spreadsheet respons disambungkan']},
+    {type:'tip',items:[
+      'Jangan tambah markah jika tidak diminta.',
+      'Jangan tukar jenis soalan selepas set jawapan.',
+      'Pastikan Check my progress hijau.']},
+  ]},
+
+  {id:uid(),title:'GCE L2 — Lab: Google Calendar',subtitle:'Panduan langkah demi langkah · Exam Lab Level 2',blocks:[
+    {type:'note',items:[
+      'SEMUA tugasan mesti dibuat dalam SATU event yang sama — jangan cipta event berasingan!',
+      'Log masuk guna Google Username & Password yang diberi oleh lab (copy & paste).',
+      'Pastikan TIADA akaun peribadi Google lain log masuk. Tutup semua pop-up maklumat.']},
+    {type:'h2',text:'TASK 1: Create Google Calendar Event'},
+    {type:'steps',items:[
+      'Buka Google Calendar → klik Create (butang +) → pilih Event.',
+      'Title: [[Community Fair]] — ejaan mesti tepat!',
+      'Date & Time: pilih Next Friday · Start: 3:00 PM · End: 4:00 PM.',
+      'JANGAN guna "All day" dan jangan salah zon masa.',
+      'Klik ikon paperclip (Attach file) → pilih From Drive.',
+      'Cari fail: [[Community Fair Agenda]] → klik Add. Pastikan fail dari My Drive, BUKAN upload dari komputer.']},
+    {type:'h2',text:'TASK 2: Configure Google Meet + Live Streaming'},
+    {type:'steps',items:[
+      'Dalam event yang sama, klik Add Google Meet conferencing — link Meet dijana automatik.',
+      'Klik ikon Settings (gear) / Event settings.',
+      'Cari bahagian Video conferencing dan pastikan: Google Meet aktif + Live streaming enabled.',
+      'Live streaming hanya boleh aktif jika Meet ditambah. Jangan delete Meet link selepas aktifkan.']},
+    {type:'h2',text:'TASK 3: Add Location'},
+    {type:'steps',items:[
+      'Dalam ruangan Location, taip: [[123 Main Street]]',
+      'JANGAN letak dalam Description atau Notes.']},
+    {type:'h2',text:'TASK 4: Set Personal Notification'},
+    {type:'steps',items:[
+      'Cari bahagian Notification → klik Add notification.',
+      'Type: Email · Time: 1 hour before.',
+      'Kesalahan biasa: ✘ Pop-up notification · ✘ 30 minutes · ✘ notifikasi lebih dari satu.']},
+    {type:'h2',text:'TASK 5: Invite Guests (Paling Penting)'},
+    {type:'steps',items:[
+      'Buka tab baru → buka fail Google Sheets: [[Community Fair Invite List]] (mengandungi senarai e-mel).',
+      'Kembali ke Event Community Fair → dalam ruangan Add guests.',
+      'Copy e-mel tetamu dari Google Sheets & paste → tekan Enter.',
+      'Pastikan tetamu benar-benar muncul dalam senarai.',
+      'Cari bahagian Guest permissions dan NYAH-TANDA: Guests can invite others + Guests can see guest list. Ini WAJIB untuk markah penuh!']},
+    {type:'h2',text:'LANGKAH AKHIR: Simpan & Semak'},
+    {type:'steps',items:[
+      'Klik Save.',
+      'Jika keluar pop-up, klik Send (atau Send invitations).',
+      'Klik Check my progress dan pastikan semua Task bertukar Hijau / Complete.']},
+    {type:'check',items:[
+      'Title = Community Fair','Friday, 3–4 PM','File Community Fair Agenda attached',
+      'Google Meet + Live streaming aktif','Location = 123 Main Street',
+      'Email notification 1 hour before','Guests invited dari Google Sheets',
+      'Guests tidak boleh invite & lihat e-mel lain']},
+  ]},
+
+  {id:uid(),title:'GCE L2 — Lab: Google Classroom',subtitle:'Panduan langkah demi langkah · Exam Lab Level 2',blocks:[
+    {type:'note',items:[
+      'Log keluar semua akaun Gmail peribadi. Guna Incognito / Private Window.',
+      'Klik Start Lab → salin Google Username & Password (panel kiri) → Open Google Drive → log masuk akaun lab.',
+      'Jangan tukar nama fail. Jangan ubah setting lain selain yang diminta.']},
+    {type:'h2',text:'TASK 1: Create a Class'},
+    {type:'steps',items:[
+      'Buka Google Classroom (menu Google Apps 9 titik → Classroom).',
+      'Klik + (Create) di penjuru kanan atas → pilih Create class.',
+      'Class name: [[Flipped Class]] — biarkan medan lain kosong.',
+      'Klik Create.',
+      'Klik Check my progress — pastikan status bertukar hijau.']},
+    {type:'h2',text:'TASK 2: Invite Members (Teacher & Students)'},
+    {type:'steps',items:[
+      'Buka Google Drive → cari & buka fail: [[5th Grade List]]',
+      'Kenal pasti senarai Teacher email dan Student email.',
+      'Masuk semula ke Classroom → Flipped Class → klik tab People.',
+      'Di bahagian Teachers, klik Invite teachers → tampal email teacher dari Google Sheets → klik Invite.',
+      'Di bahagian Students, klik Invite students → tampal semua email students → klik Invite.',
+      'Klik Check my progress. ⚠ Jangan invite sebagai "guardian" — pastikan kategori TEACHER & STUDENT betul.']},
+    {type:'h2',text:'TASK 3: Create Two Topics'},
+    {type:'steps',items:[
+      'Dalam kelas Flipped Class, klik tab Classwork.',
+      'Klik Create → Topic → taip: [[Term 1]] → klik Add.',
+      'Ulang: Create → Topic → taip: [[Term 2]] → klik Add.',
+      'Klik Check my progress.']},
+    {type:'h2',text:'TASK 4: Create Assignment & Material'},
+    {type:'h3',text:'A. Create Assignment (Unit 1)'},
+    {type:'steps',items:[
+      'Tab Classwork → klik Create → Assignment.',
+      'Title: [[Unit 1]]',
+      'Klik Add → Google Drive → pilih fail: [[5th Grade Poetic Devices]]',
+      'Tetapan: Points: [[10]] · Due date: Next week · Topic: Term 1.',
+      'Klik Assign.']},
+    {type:'h3',text:'B. Create Material (Unit 1 Readings)'},
+    {type:'steps',items:[
+      'Tab Classwork → klik Create → Material.',
+      'Title: [[Unit 1 Readings]]',
+      'Klik Add → Google Drive → pilih fail: [[5th Grade Poetry: Unit 1 Reading List]]',
+      'Klik Post.',
+      'Klik Check my progress. ⚠ Assignment ≠ Material — tajuk mesti tepat ejaan!']},
+    {type:'h2',text:'TASK 5: Create Announcement (With Google Meet)'},
+    {type:'steps',items:[
+      'Klik tab Stream → klik Share something with your class.',
+      'Taip TEPAT seperti di bawah: [[Reminder: You have an upcoming online session.\n\nArrive on time; Keep mics muted; Raise hands to speak.]]',
+      'Klik ikon Google Meet (kamera hijau) — pastikan link Google Meet dimasukkan.',
+      'Klik Post.',
+      'Klik Check my progress.']},
+    {type:'check',items:[
+      'Class name: Flipped Class','Teachers & students dijemput dari 5th Grade List',
+      'Topics: Term 1 & Term 2','Assignment: Unit 1 · fail betul · 10 marks · due next week · Topic Term 1',
+      'Material: Unit 1 Readings','Announcement ada teks reminder + peraturan + Google Meet link']},
+  ]},
+
+  {id:uid(),title:'GCE L2 — Lab: Google Slides',subtitle:'Panduan langkah demi langkah · Exam Lab Level 2',blocks:[
+    {type:'note',items:[
+      'SEMUA kerja dibuat dalam SATU presentation sahaja.',
+      'Log masuk guna User Email & Password yang disediakan (copy & paste).',
+      'Pastikan akaun Google peribadi log keluar — guna tab Incognito / Remote Browser.']},
+    {type:'h2',text:'TASK 1: Create a Title Slide'},
+    {type:'steps',items:[
+      'Buka Google Slides → klik Blank.',
+      'Tukar nama presentation (penjuru atas kiri) kepada: [[Welcome to Our Team]] → tekan Enter. Jangan tambah perkataan lain!',
+      'Slide pertama = Title Slide. Dalam kotak tajuk, taip: [[Welcome to Our Team]]',
+      'Klik menu Insert → Image → Drive.',
+      'Cari fail: [[handclap.png]] → klik Insert. Laraskan saiz & posisi (bebas — auto-marking hanya semak imej WUJUD).',
+      'Klik Check my progress (Task 1).']},
+    {type:'h2',text:'TASK 2: Create Template Slides & Share Presentation'},
+    {type:'h3',text:'A. Template Slide untuk Guru'},
+    {type:'steps',items:[
+      'Klik + (New slide) sebanyak 3 kali. Untuk setiap slide: klik Layout → pilih Title and Body.',
+      'Slide 1 — Title: [[Teacher 1]]',
+      'Slide 2 — Title: [[Teacher 2]]',
+      'Slide 3 — Title: [[Teacher 3]]',
+      'Body untuk SETIAP slide (salin semua 5 baris): [[Name\nRoom #\nOffice Phone Number\nEmail Address\nFavorite Quote]]',
+      'Jangan ubah susunan teks. Jangan tambah ikon / bullet pelik.']},
+    {type:'h3',text:'B. Share Presentation kepada Guru'},
+    {type:'steps',items:[
+      'Klik Share (butang biru).',
+      'Masukkan email: Teacher 1, Teacher 2, Teacher 3.',
+      'Set akses: Editor (bukan Viewer / Commenter!).',
+      'Klik Send.']},
+    {type:'h3',text:'C. Theme Builder (Sangat Penting)'},
+    {type:'steps',items:[
+      'Klik View → pilih Theme builder.',
+      'Dalam panel kiri, klik + (Add layout).',
+      'Namakan layout: [[Image Placeholder]]',
+      'Klik Insert → Placeholder → Image → lukis kotak segi empat di tengah slide. MESTI guna Placeholder, bukan Insert Image biasa!',
+      'Keluar dari Theme Builder (X) → tambah 1 slide baru → klik Layout → pilih Image Placeholder.',
+      'Klik Check my progress (Task 2).']},
+    {type:'h2',text:'TASK 3: Assign Slides kepada Colleagues'},
+    {type:'steps',items:[
+      'Tambah 5 slide baru, semua Layout: Title and Body.',
+      'Tajuk slide 1: [[Schedule]] → untuk Teacher 1',
+      'Tajuk slide 2: [[Classroom Expectations]] → untuk Teacher 1',
+      'Tajuk slide 3: [[Field Trips]] → untuk Teacher 2',
+      'Tajuk slide 4: [[Academic Support]] → untuk Teacher 2',
+      'Tajuk slide 5: [[Important Documents]] → untuk Teacher 3',
+      'Untuk SETIAP slide: klik Add comment → taip @Teacher 1 / @Teacher 2 / @Teacher 3 mengikut jadual + ayat ringkas: [[Please complete this slide.]]',
+      'Klik Assign. WAJIB guna simbol @ dan komen mesti pada slide yang betul!',
+      'Klik Check my progress (Task 3).']},
+    {type:'h2',text:'TASK 4: Add Video to a Slide'},
+    {type:'steps',items:[
+      'Tambah 1 slide baru (Blank).',
+      'Klik Insert → Video → pilih Drive.',
+      'Cari: [[Meet Our Amazing New Teachers.mp4]] → klik Insert.',
+      'Tak perlu resize cantik — asalkan video ada.',
+      'Klik Check my progress (Task 4).']},
+    {type:'h2',text:'TASK 5: Share dengan Education Leader'},
+    {type:'steps',items:[
+      'Klik Share.',
+      'Masukkan email: [[Education leader]]',
+      'Set akses: Commenter (jangan tersalah Editor / Viewer!).',
+      'Klik Send.',
+      'Klik Check my progress (Task 5).']},
+    {type:'check',items:[
+      'Nama presentation betul','Imej handclap.png ada','3 slide Teacher (Title & Body)',
+      'Slides dikongsi sebagai Editor','Theme Builder ada Image Placeholder',
+      '5 slide ada komen assign','Video .mp4 dimasukkan','Education leader = Commenter']},
+  ]},
+  ];
+}
+
+/* ---------- boot ---------- */
+load();
+render();
+</script>
+</body>
+</html>
