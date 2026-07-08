@@ -710,35 +710,42 @@ function buildReaderHTML(guides){
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GCE Altra Guide</title>
 <style>${css}
-/* reader tweaks — bar kekal SATU baris nipis; tab skrol mendatar, tidak wrap */
+/* reader tweaks — bar SATU baris nipis dengan pemilih dropdown; boleh disembunyikan */
 .rd-bar{position:sticky;top:0;z-index:50;background:var(--side);color:#E2E8F0;padding:8px 12px;display:flex;align-items:center;gap:10px;flex-wrap:nowrap;box-shadow:0 2px 12px rgba(15,23,42,.25)}
 .rd-brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:13.5px;color:#F8FAFC;flex:none;white-space:nowrap}
 .rd-brand .logo-mark{width:30px;height:30px;border-radius:8px}
-.rd-tabs{display:flex;gap:6px;flex-wrap:nowrap;flex:1;min-width:0;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#475569 transparent;-webkit-overflow-scrolling:touch;padding:2px 0}
-.rd-tabs::-webkit-scrollbar{height:5px}
-.rd-tabs::-webkit-scrollbar-thumb{background:#475569;border-radius:99px}
-.rd-tab{flex:none;white-space:nowrap;border:1px solid #334155;background:var(--side2);color:#CBD5E1;border-radius:99px;padding:6px 14px;min-height:32px;font-size:12px;font-weight:500;cursor:pointer;transition:background .18s,color .18s,border-color .18s}
-.rd-tab:hover{background:#334155;color:#F1F5F9}
-.rd-tab.on{background:var(--brand);border-color:var(--accent);color:#fff;font-weight:600}
-.rd-print{flex:none;display:flex;align-items:center;gap:7px;border:1px solid #334155;background:var(--side2);color:#E2E8F0;border-radius:8px;padding:6px 12px;min-height:32px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .18s}
+.rd-sel{flex:1;min-width:0;max-width:420px;background:var(--side2);border:1px solid #334155;color:#F1F5F9;
+  border-radius:8px;padding:8px 10px;min-height:36px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
+.rd-sel:hover{background:#334155}
+.rd-sel option{background:#fff;color:var(--ink);font-weight:500}
+.rd-spacer{flex:1}
+.rd-print{flex:none;display:flex;align-items:center;gap:7px;border:1px solid #334155;background:var(--side2);color:#E2E8F0;border-radius:8px;padding:6px 12px;min-height:34px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .18s}
 .rd-print:hover{background:#334155}
+.rd-hide{flex:none;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid #334155;background:var(--side2);color:#CBD5E1;border-radius:8px;cursor:pointer;transition:background .18s}
+.rd-hide:hover{background:#334155;color:#fff}
+#rshow{position:fixed;top:10px;right:10px;z-index:60;display:none;align-items:center;justify-content:center;
+  width:40px;height:40px;border:none;border-radius:99px;background:var(--side);color:#E2E8F0;box-shadow:var(--sh-lg);cursor:pointer;opacity:.85;transition:opacity .18s}
+#rshow:hover{opacity:1}
 @media(max-width:760px){.rd-brand-txt{display:none}}
 @media(max-width:480px){.rd-print-txt{display:none}}
 .rd-howto{max-width:840px;margin:18px auto 0;background:var(--check-bg);border:1px solid var(--check-bd);border-left:4px solid var(--brand);border-radius:var(--r-md);padding:14px 20px;font-size:13.5px;color:var(--check-tx);line-height:1.7}
 .rd-howto b{color:#075985}
 #rmain{padding:20px 16px 72px;display:flex;justify-content:center}
-@media print{.rd-bar,.rd-howto{display:none!important}}
+@media print{.rd-bar,.rd-howto,#rshow{display:none!important}}
 </style>
 </head>
 <body>
-<div class="rd-bar">
+<div class="rd-bar" id="rbar">
   <div class="rd-brand">
     <div class="logo-mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></div>
     <span class="rd-brand-txt">GCE Altra Guide</span>
   </div>
-  <div class="rd-tabs" id="rtabs"></div>
+  <select class="rd-sel" id="rsel" aria-label="Pilih panduan" onchange="curIdx=+this.value;render()"></select>
+  <div class="rd-spacer"></div>
   <button class="rd-print" onclick="window.print()"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg><span class="rd-print-txt">Cetak / PDF</span></button>
+  <button class="rd-hide" onclick="toggleBar(false)" aria-label="Sembunyikan bar — paparan penuh" title="Sembunyikan bar — paparan penuh"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg></button>
 </div>
+<button id="rshow" onclick="toggleBar(true)" aria-label="Tunjukkan bar" title="Tunjukkan bar"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
 <div class="rd-howto">
   <b>Cara guna:</b> ① Klik <b>KIRI</b> pada mana-mana kotak biru untuk <b>SALIN</b> teks tepat.
   ② Pergi ke tempat destinasi (Google Classroom, Forms, dll.) dan <b>TAMPAL</b>: klik <b>KANAN</b> = tampal terus jika AltraPaste dihidupkan, atau tekan <b>Ctrl+V</b>.
@@ -769,8 +776,14 @@ function blockHTML(b){const li=x=>x.map(i=>'<li>'+parseChips(i)+'</li>').join(''
   if(b.type==='tip')return '<div class="box box-tip"><span class="bx-t">'+ico('bulb',14)+'Tip Lulus</span><ul>'+li(b.items)+'</ul></div>';
   if(b.type==='check')return '<div class="box box-check"><span class="bx-t">'+ico('checksq',14)+'Senarai Semak Akhir</span><ul>'+li(b.items)+'</ul></div>';
   return ''}
+function toggleBar(show){
+  document.getElementById('rbar').style.display=show?'flex':'none';
+  document.getElementById('rshow').style.display=show?'none':'flex';
+}
 function render(){
-  document.getElementById('rtabs').innerHTML=GUIDES.map((g,i)=>'<button class="rd-tab'+(i===curIdx?' on':'')+'" onclick="curIdx='+i+';render()">'+esc(g.title)+'</button>').join('');
+  const sel=document.getElementById('rsel');
+  sel.innerHTML=GUIDES.map((g,i)=>'<option value="'+i+'"'+(i===curIdx?' selected':'')+'>'+esc(g.title)+'</option>').join('');
+  sel.style.display=GUIDES.length>1?'':'none';
   const g=GUIDES[curIdx];
   document.getElementById('page').innerHTML='<h1 class="g-title">'+esc(g.title)+'</h1>'+(g.subtitle?'<p class="g-sub">'+esc(g.subtitle)+'</p>':'')+'<hr class="g-hr">'+g.blocks.map(blockHTML).join('')+
   '<div class="practice"><h4>'+ico('mouse',14)+'Kawasan latihan tampal — klik KANAN di dalam kotak ini untuk tampal item terakhir disalin:</h4><textarea placeholder="Klik kanan di sini selepas menyalin sesuatu…" aria-label="Kawasan latihan tampal"></textarea></div>'+
